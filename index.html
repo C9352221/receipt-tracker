@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Receipt Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <h1>Receipt Tracker</h1>
+    <span class="status-dot" id="statusDot" title="Online"></span>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs">
+    <button class="tab active" data-screen="capture">Capture</button>
+    <button class="tab" data-screen="dashboard">Dashboard</button>
+    <button class="tab" data-screen="detail">Detail</button>
+  </nav>
+
+  <!-- Capture Screen -->
+  <section class="screen active" id="screen-capture">
+    <div class="capture-area">
+
+      <label class="camera-btn" id="cameraBtn">
+        Capture Receipt
+        <input type="file" id="cameraInput" accept="image/*" capture="environment">
+      </label>
+
+      <img class="preview-img" id="previewImg" alt="Receipt preview">
+
+      <div class="form-group">
+        <label>Account</label>
+        <div class="account-toggle">
+          <button class="active" data-account="business">Business</button>
+          <button data-account="ministry">Ministry</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Trip Name (optional)</label>
+        <input type="text" id="tripName" placeholder="e.g. Turkey March 2026">
+      </div>
+
+      <button class="submit-btn" id="submitBtn" disabled>Submit Receipt</button>
+    </div>
+  </section>
+
+  <!-- Dashboard Screen -->
+  <section class="screen" id="screen-dashboard">
+    <div class="filters">
+      <select id="filterAccount">
+        <option value="">All Accounts</option>
+        <option value="business">Business</option>
+        <option value="ministry">Ministry</option>
+      </select>
+      <select id="filterStatus">
+        <option value="">All Status</option>
+        <option value="uncategorized">Uncategorized</option>
+        <option value="categorized">Categorized</option>
+      </select>
+      <select id="filterCategory">
+        <option value="">All Categories</option>
+        <option value="meals">Meals</option>
+        <option value="transport">Transport</option>
+        <option value="lodging">Lodging</option>
+        <option value="supplies">Supplies</option>
+        <option value="communication">Communication</option>
+        <option value="conference">Conference</option>
+        <option value="other">Other</option>
+      </select>
+      <input type="text" id="filterTrip" placeholder="Trip name...">
+    </div>
+
+    <div class="receipt-list" id="receiptList">
+      <div class="empty-state">
+        <div class="icon">📸</div>
+        <p>No receipts yet. Tap Capture to get started.</p>
+      </div>
+    </div>
+
+    <button class="submit-btn" id="loadMoreBtn" style="margin-top:16px; display:none;">Load More</button>
+  </section>
+
+  <!-- Detail Screen -->
+  <section class="screen" id="screen-detail">
+    <button class="detail-back" id="detailBack">Back to Dashboard</button>
+    <img class="detail-image" id="detailImage" alt="Receipt">
+    <div class="detail-fields" id="detailFields"></div>
+  </section>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

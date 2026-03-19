@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate PWA Icons</title></head>
+<body>
+<h2>Right-click each canvas and "Save Image As" to save the icon</h2>
+<p>icon-192.png:</p>
+<canvas id="c192" width="192" height="192"></canvas>
+<p>icon-512.png:</p>
+<canvas id="c512" width="512" height="512"></canvas>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s = canvas.width;
+  // Background
+  ctx.fillStyle = '#1e3a5f';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, s * 0.15);
+  ctx.fill();
+  // Receipt icon
+  ctx.fillStyle = '#f5f5f0';
+  const rw = s * 0.45, rh = s * 0.6;
+  const rx = (s - rw) / 2, ry = (s - rh) / 2 - s * 0.02;
+  ctx.beginPath();
+  ctx.roundRect(rx, ry, rw, rh, s * 0.03);
+  ctx.fill();
+  // Lines on receipt
+  ctx.fillStyle = '#a0aec0';
+  for (let i = 0; i < 4; i++) {
+    ctx.fillRect(rx + rw * 0.15, ry + rh * (0.2 + i * 0.17), rw * 0.7, s * 0.02);
+  }
+  // Gold dollar sign
+  ctx.fillStyle = '#e8b923';
+  ctx.font = `bold ${s * 0.22}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', s * 0.68, s * 0.72);
+}
+drawIcon(document.getElementById('c192'));
+drawIcon(document.getElementById('c512'));
+</script>
+</body>
+</html>
