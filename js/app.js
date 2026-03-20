@@ -8,7 +8,7 @@
 // --- Configuration ---
 // UPDATE THIS after deploying the Cloudflare Worker
 const API_URL = 'https://receipt-api.alfanoministries.workers.dev';
-const API_KEY = ''; // Set after generating: openssl rand -hex 32
+const API_KEY = 'eef0490c12123e527577f0159051091fa7491f0355ea9d0c422e2a74e10167d3';
 
 // --- State ---
 let currentAccount = 'business';
