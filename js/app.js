@@ -335,9 +335,9 @@ function renderReceipts() {
 
   receiptList.innerHTML = receipts.map(r => `
     <div class="receipt-card" data-id="${r.id}">
-      <div class="receipt-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.5rem;">
-        ${r.status === 'categorized' ? '✅' : '📋'}
-      </div>
+      <img class="receipt-thumb" data-receipt-id="${r.id}" alt=""
+        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        onerror="this.style.display='none'">
       <div class="receipt-info">
         <div class="vendor">${r.vendor || 'Uncategorized Receipt'}</div>
         <div class="meta">
@@ -349,6 +349,19 @@ function renderReceipts() {
       </div>
     </div>
   `).join('');
+
+  // Lazy-load thumbnails
+  receiptList.querySelectorAll('.receipt-thumb[data-receipt-id]').forEach(async img => {
+    try {
+      const resp = await fetch(`${API_URL}/receipts/${img.dataset.receiptId}/image`, {
+        headers: { 'Authorization': `Bearer ${API_KEY}` },
+      });
+      if (resp.ok) {
+        const blob = await resp.blob();
+        img.src = URL.createObjectURL(blob);
+      }
+    } catch { /* silent fail, thumbnail just won't show */ }
+  });
 
   // Click handlers
   receiptList.querySelectorAll('.receipt-card').forEach(card => {
@@ -384,18 +397,56 @@ loadMoreBtn.addEventListener('click', () => {
   loadReceipts(false);
 });
 
+// --- Export ---
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('exportBtn');
+  btn.textContent = 'Exporting...';
+  btn.disabled = true;
+
+  try {
+    const params = new URLSearchParams();
+    const account = document.getElementById('filterAccount').value;
+    const trip = document.getElementById('filterTrip').value;
+    if (account) params.set('account', account);
+    // Note: export endpoint uses date_from/date_to, not trip filter — but we pass account
+
+    const resp = await fetch(`${API_URL}/export?${params.toString()}`, {
+      headers: { 'Authorization': `Bearer ${API_KEY}` },
+    });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `receipts-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV exported!', 'success');
+  } catch (err) {
+    showToast(`Export failed: ${err.message}`, 'error');
+  } finally {
+    btn.textContent = 'Export CSV';
+    btn.disabled = false;
+  }
+});
+
 // --- Detail View ---
+let currentReceiptId = null;
+
 async function showDetail(id) {
-  // Switch to detail tab
+  currentReceiptId = id;
+
+  // Switch to detail screen
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.querySelector('[data-screen="detail"]').classList.add('active');
   document.getElementById('screen-detail').classList.add('active');
 
   try {
     const receipt = await apiCall('GET', `/receipts/${id}`);
 
-    // Load image via Worker proxy (need auth header, so fetch as blob)
+    // Load image via Worker proxy
     try {
       const imgResp = await fetch(`${API_URL}/receipts/${id}/image`, {
         headers: { 'Authorization': `Bearer ${API_KEY}` },
@@ -411,20 +462,37 @@ async function showDetail(id) {
       detailImage.style.display = 'none';
     }
 
+    // Populate edit form
+    document.getElementById('editVendor').value = receipt.vendor || '';
+    document.getElementById('editAmount').value = receipt.amount || '';
+    document.getElementById('editCurrency').value = receipt.currency || '';
+    document.getElementById('editDate').value = receipt.receipt_date || '';
+    document.getElementById('editCategory').value = receipt.category || '';
+    document.getElementById('editDescription').value = receipt.description || '';
+
+    // Populate trip dropdown with existing trips
+    const editTrip = document.getElementById('editTrip');
+    while (editTrip.options.length > 1) editTrip.remove(1);
+    try {
+      const tripData = await apiCall('GET', '/trips');
+      for (const trip of tripData.trips) {
+        const opt = document.createElement('option');
+        opt.value = trip.name;
+        opt.textContent = trip.name;
+        editTrip.appendChild(opt);
+      }
+    } catch { /* trips endpoint may not be deployed yet */ }
+    editTrip.value = receipt.trip_name || '';
+
+    // Read-only metadata
     const fields = [
       ['ID', receipt.id],
       ['Account', receipt.account],
       ['Status', receipt.status],
-      ['Vendor', receipt.vendor],
-      ['Amount', receipt.amount ? `${receipt.currency || ''} ${Number(receipt.amount).toFixed(2)}` : null],
       ['Amount (USD)', receipt.amount_usd ? `$${Number(receipt.amount_usd).toFixed(2)}` : null],
       ['Exchange Rate', receipt.exchange_rate],
-      ['Date', receipt.receipt_date],
-      ['Category', receipt.category],
       ['Tax Category', receipt.tax_category],
-      ['Description', receipt.description],
       ['Language', receipt.original_language],
-      ['Trip', receipt.trip_name],
       ['Created', receipt.created_at],
       ['Updated', receipt.updated_at],
     ];
@@ -438,25 +506,68 @@ async function showDetail(id) {
         </div>
       `).join('');
 
-    // Line items
-    if (receipt.line_items) {
-      try {
-        const items = typeof receipt.line_items === 'string'
-          ? JSON.parse(receipt.line_items)
-          : receipt.line_items;
-        if (Array.isArray(items) && items.length > 0) {
-          detailFields.innerHTML += `
-            <div class="detail-field" style="flex-direction:column;gap:4px;">
-              <span class="label">Line Items</span>
-              ${items.map(item => `<span class="value" style="text-align:left;">${item}</span>`).join('')}
-            </div>`;
-        }
-      } catch { /* skip invalid JSON */ }
-    }
   } catch (err) {
     showToast(`Failed to load receipt: ${err.message}`, 'error');
   }
 }
+
+// Save receipt edits
+document.getElementById('saveReceiptBtn').addEventListener('click', async () => {
+  if (!currentReceiptId) return;
+  const btn = document.getElementById('saveReceiptBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const updates = {
+    vendor: document.getElementById('editVendor').value.trim() || null,
+    amount: parseFloat(document.getElementById('editAmount').value) || null,
+    currency: document.getElementById('editCurrency').value || null,
+    receipt_date: document.getElementById('editDate').value || null,
+    category: document.getElementById('editCategory').value || null,
+    trip_name: document.getElementById('editTrip').value || null,
+    description: document.getElementById('editDescription').value.trim() || null,
+  };
+
+  // Auto-set status to categorized if key fields are filled
+  if (updates.vendor && updates.amount && updates.receipt_date) {
+    updates.status = 'categorized';
+  }
+
+  try {
+    const result = await apiCall('PUT', `/receipts/${currentReceiptId}`, updates);
+    let msg = 'Receipt saved!';
+    if (result.duplicates_deleted && result.duplicates_deleted.length > 0) {
+      msg += ` (${result.duplicates_deleted.length} duplicate(s) auto-deleted)`;
+    }
+    showToast(msg, 'success');
+    // Refresh the detail view
+    await showDetail(currentReceiptId);
+  } catch (err) {
+    showToast(`Save failed: ${err.message}`, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+});
+
+// Delete receipt
+document.getElementById('deleteReceiptBtn').addEventListener('click', async () => {
+  if (!currentReceiptId) return;
+  if (!confirm('Delete this receipt? This cannot be undone.')) return;
+
+  try {
+    await apiCall('DELETE', `/receipts/${currentReceiptId}`);
+    showToast('Receipt deleted', 'success');
+    // Go back to dashboard
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelector('[data-screen="dashboard"]').classList.add('active');
+    document.getElementById('screen-dashboard').classList.add('active');
+    loadReceipts(true);
+  } catch (err) {
+    showToast(`Delete failed: ${err.message}`, 'error');
+  }
+});
 
 detailBack.addEventListener('click', () => {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));

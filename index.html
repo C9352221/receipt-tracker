@@ -95,13 +95,80 @@
       </div>
     </div>
 
-    <button class="submit-btn" id="loadMoreBtn" style="margin-top:16px; display:none;">Load More</button>
+    <div class="dashboard-actions">
+      <button class="submit-btn" id="loadMoreBtn" style="display:none;">Load More</button>
+      <button class="export-btn" id="exportBtn">Export CSV</button>
+    </div>
   </section>
 
   <!-- Detail Screen -->
   <section class="screen" id="screen-detail">
     <button class="detail-back" id="detailBack">Back to Dashboard</button>
     <img class="detail-image" id="detailImage" alt="Receipt">
+
+    <!-- Edit Form -->
+    <div class="detail-form" id="detailForm">
+      <div class="form-row">
+        <label>Vendor</label>
+        <input type="text" id="editVendor" placeholder="e.g. Starbucks">
+      </div>
+      <div class="form-row two-col">
+        <div>
+          <label>Amount</label>
+          <input type="number" id="editAmount" step="0.01" placeholder="0.00">
+        </div>
+        <div>
+          <label>Currency</label>
+          <select id="editCurrency">
+            <option value="">—</option>
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="GBP">GBP</option>
+            <option value="CHF">CHF</option>
+            <option value="TRY">TRY</option>
+            <option value="PLN">PLN</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row two-col">
+        <div>
+          <label>Date</label>
+          <input type="date" id="editDate">
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="editCategory">
+            <option value="">—</option>
+            <option value="meals">Meals</option>
+            <option value="fuel">Fuel</option>
+            <option value="tolls">Tolls</option>
+            <option value="transport">Transport</option>
+            <option value="lodging">Lodging</option>
+            <option value="shopping">Shopping</option>
+            <option value="supplies">Supplies</option>
+            <option value="communication">Communication</option>
+            <option value="conference">Conference</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Trip</label>
+        <select id="editTrip">
+          <option value="">— No trip —</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <textarea id="editDescription" rows="3" placeholder="Notes about this receipt..."></textarea>
+      </div>
+      <div class="detail-actions">
+        <button class="submit-btn" id="saveReceiptBtn">Save</button>
+        <button class="delete-btn" id="deleteReceiptBtn">Delete Receipt</button>
+      </div>
+    </div>
+
+    <!-- Read-only fields -->
     <div class="detail-fields" id="detailFields"></div>
   </section>
 
