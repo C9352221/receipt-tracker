@@ -22,7 +22,8 @@ const statusDot = document.getElementById('statusDot');
 const cameraInput = document.getElementById('cameraInput');
 const previewImg = document.getElementById('previewImg');
 const submitBtn = document.getElementById('submitBtn');
-const tripName = document.getElementById('tripName');
+const tripSelect = document.getElementById('tripSelect');
+const tripNameNew = document.getElementById('tripNameNew');
 const receiptList = document.getElementById('receiptList');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
 const detailBack = document.getElementById('detailBack');
@@ -56,6 +57,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById(`screen-${screen}`).classList.add('active');
 
     if (screen === 'dashboard') {
+      loadFilterTrips();
       loadReceipts(true);
     }
   });
@@ -69,6 +71,58 @@ document.querySelectorAll('.account-toggle button').forEach(btn => {
     currentAccount = btn.dataset.account;
   });
 });
+
+// --- Trip Name Dropdown ---
+async function loadTrips() {
+  try {
+    const data = await apiCall('GET', '/trips');
+    // Remove old dynamic options (keep first two: "No trip" and "New trip")
+    while (tripSelect.options.length > 2) {
+      tripSelect.remove(2);
+    }
+    // Insert trip options before the "New trip" option
+    const newTripOption = tripSelect.options[1];
+    for (const trip of data.trips) {
+      const opt = document.createElement('option');
+      opt.value = trip.name;
+      opt.textContent = `${trip.name} (${trip.receipt_count})`;
+      tripSelect.insertBefore(opt, newTripOption);
+    }
+    // Restore last used trip from localStorage
+    const lastTrip = localStorage.getItem('lastTrip');
+    if (lastTrip) {
+      const match = Array.from(tripSelect.options).find(o => o.value === lastTrip);
+      if (match) {
+        tripSelect.value = lastTrip;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to load trips:', err);
+  }
+}
+
+tripSelect.addEventListener('change', () => {
+  if (tripSelect.value === '__new__') {
+    tripNameNew.style.display = 'block';
+    tripNameNew.focus();
+  } else {
+    tripNameNew.style.display = 'none';
+    tripNameNew.value = '';
+    if (tripSelect.value) {
+      localStorage.setItem('lastTrip', tripSelect.value);
+    }
+  }
+});
+
+function getTripName() {
+  if (tripSelect.value === '__new__') {
+    return tripNameNew.value.trim() || null;
+  }
+  return tripSelect.value || null;
+}
+
+// Load trips on startup
+loadTrips();
 
 // --- Camera / Image Handling ---
 cameraInput.addEventListener('change', async (e) => {
@@ -135,10 +189,11 @@ submitBtn.addEventListener('click', async () => {
   submitBtn.disabled = true;
   submitBtn.innerHTML = '<span class="spinner"></span> Uploading...';
 
+  const selectedTrip = getTripName();
   const payload = {
     image: currentImage,
     account: currentAccount,
-    trip_name: tripName.value.trim() || null,
+    trip_name: selectedTrip,
   };
 
   try {
@@ -151,12 +206,20 @@ submitBtn.addEventListener('click', async () => {
       showToast('Saved offline — will upload when connected', 'success');
     }
 
-    // Reset form
+    // Reset form (keep trip selection for batch uploads)
     currentImage = null;
     previewImg.classList.remove('visible');
     previewImg.src = '';
     cameraInput.value = '';
-    tripName.value = '';
+    // If a new trip was created, save it and refresh the dropdown
+    if (selectedTrip) {
+      localStorage.setItem('lastTrip', selectedTrip);
+    }
+    if (tripSelect.value === '__new__') {
+      tripNameNew.value = '';
+      tripNameNew.style.display = 'none';
+    }
+    await loadTrips();
   } catch (err) {
     showToast(`Upload failed: ${err.message}`, 'error');
   } finally {
@@ -294,10 +357,27 @@ function renderReceipts() {
 }
 
 // Filter change handlers
-['filterAccount', 'filterStatus', 'filterCategory'].forEach(id => {
+['filterAccount', 'filterStatus', 'filterCategory', 'filterTrip'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => loadReceipts(true));
 });
-document.getElementById('filterTrip').addEventListener('input', debounce(() => loadReceipts(true), 500));
+
+// Populate dashboard trip filter dropdown
+async function loadFilterTrips() {
+  try {
+    const data = await apiCall('GET', '/trips');
+    const filterTrip = document.getElementById('filterTrip');
+    // Keep "All Trips" option, remove the rest
+    while (filterTrip.options.length > 1) filterTrip.remove(1);
+    for (const trip of data.trips) {
+      const opt = document.createElement('option');
+      opt.value = trip.name;
+      opt.textContent = `${trip.name} (${trip.receipt_count})`;
+      filterTrip.appendChild(opt);
+    }
+  } catch (err) {
+    console.warn('Failed to load filter trips:', err);
+  }
+}
 
 loadMoreBtn.addEventListener('click', () => {
   currentOffset += PAGE_SIZE;

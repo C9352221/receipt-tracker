@@ -47,7 +47,11 @@
 
       <div class="form-group">
         <label>Trip Name (optional)</label>
-        <input type="text" id="tripName" placeholder="e.g. Turkey March 2026">
+        <select id="tripSelect">
+          <option value="">— No trip —</option>
+          <option value="__new__">+ New trip...</option>
+        </select>
+        <input type="text" id="tripNameNew" placeholder="e.g. Turkey March 2026" style="display:none; margin-top:8px;">
       </div>
 
       <button class="submit-btn" id="submitBtn" disabled>Submit Receipt</button>
@@ -70,14 +74,19 @@
       <select id="filterCategory">
         <option value="">All Categories</option>
         <option value="meals">Meals</option>
+        <option value="fuel">Fuel</option>
+        <option value="tolls">Tolls</option>
         <option value="transport">Transport</option>
         <option value="lodging">Lodging</option>
+        <option value="shopping">Shopping</option>
         <option value="supplies">Supplies</option>
         <option value="communication">Communication</option>
         <option value="conference">Conference</option>
         <option value="other">Other</option>
       </select>
-      <input type="text" id="filterTrip" placeholder="Trip name...">
+      <select id="filterTrip">
+        <option value="">All Trips</option>
+      </select>
     </div>
 
     <div class="receipt-list" id="receiptList">
