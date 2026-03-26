@@ -395,10 +395,19 @@ async function showDetail(id) {
   try {
     const receipt = await apiCall('GET', `/receipts/${id}`);
 
-    if (receipt.image_url) {
-      detailImage.src = receipt.image_url;
-      detailImage.style.display = 'block';
-    } else {
+    // Load image via Worker proxy (need auth header, so fetch as blob)
+    try {
+      const imgResp = await fetch(`${API_URL}/receipts/${id}/image`, {
+        headers: { 'Authorization': `Bearer ${API_KEY}` },
+      });
+      if (imgResp.ok) {
+        const blob = await imgResp.blob();
+        detailImage.src = URL.createObjectURL(blob);
+        detailImage.style.display = 'block';
+      } else {
+        detailImage.style.display = 'none';
+      }
+    } catch {
       detailImage.style.display = 'none';
     }
 
@@ -416,7 +425,6 @@ async function showDetail(id) {
       ['Description', receipt.description],
       ['Language', receipt.original_language],
       ['Trip', receipt.trip_name],
-      ['OneDrive Path', receipt.onedrive_path],
       ['Created', receipt.created_at],
       ['Updated', receipt.updated_at],
     ];
