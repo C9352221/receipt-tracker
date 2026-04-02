@@ -1,4 +1,4 @@
-const CACHE_NAME = 'receipt-tracker-v1';
+const CACHE_NAME = 'receipt-tracker-v2';
 const ASSETS = [
   '/receipt-tracker/',
   '/receipt-tracker/index.html',
